@@ -5,9 +5,18 @@ import RequestStatus from "../models/requestStatusModel.js";
 import { createAttendance } from "./createAttendance.js";
 
 export const processEmployeeAttendance = async (employee, date) => {
+  const startOfDay = new Date(date);
+  startOfDay.setHours(0, 0, 0, 0);
+
+  const endOfDay = new Date(date);
+  endOfDay.setHours(23, 59, 59, 999);
+
   const existingAttendance = await Attendance.findOne({
     employee: employee._id,
-    attendanceDate: date,
+    attendanceDate: {
+      $gte: startOfDay,
+      $lte: endOfDay,
+    },
     isActive: true,
   });
 
@@ -16,7 +25,10 @@ export const processEmployeeAttendance = async (employee, date) => {
   }
 
   const holiday = await Holiday.findOne({
-    holidayDate: date,
+    date: {
+      $gte: startOfDay,
+      $lte: endOfDay,
+    },
     isActive: true,
   });
 
@@ -44,8 +56,8 @@ export const processEmployeeAttendance = async (employee, date) => {
   const leaveRequest = await LeaveRequest.findOne({
     employee: employee._id,
     requestStatus: approvedStatus?._id,
-    fromDate: { $lte: date },
-    toDate: { $gte: date },
+    fromDate: { $lte: endOfDay },
+    toDate: { $gte: startOfDay },
     isActive: true,
   });
 

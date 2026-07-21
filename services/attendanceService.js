@@ -19,8 +19,9 @@ export const clockInService = async (userId) => {
     throw new Error("Shift is not assigned.");
   }
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  const now = new Date();
+
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
   const presentStatus = await AttendanceStatus.findOne({
     code: "PRESENT",
@@ -35,8 +36,6 @@ export const clockInService = async (userId) => {
   if (!presentStatus) {
     throw new Error("Present status not found.");
   }
-
-  const now = new Date();
 
   const [startHour, startMinute] = employee.shift.startTime
     .split(":")
@@ -56,9 +55,18 @@ export const clockInService = async (userId) => {
     lateMinutes = Math.floor((now - graceEnd) / (1000 * 60));
   }
 
+  const startOfDay = new Date(today);
+  startOfDay.setHours(0, 0, 0, 0);
+
+  const endOfDay = new Date(today);
+  endOfDay.setHours(23, 59, 59, 999);
+
   const existingAttendance = await Attendance.findOne({
     employee: employee._id,
-    attendanceDate: today,
+    attendanceDate: {
+      $gte: startOfDay,
+      $lte: endOfDay,
+    },
     isActive: true,
   }).populate("attendanceStatus");
 
@@ -119,12 +127,22 @@ export const clockOutService = async (userId) => {
     throw new Error("Shift is not assigned.");
   }
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  const now = new Date();
+
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+  const startOfDay = new Date(today);
+  startOfDay.setHours(0, 0, 0, 0);
+
+  const endOfDay = new Date(today);
+  endOfDay.setHours(23, 59, 59, 999);
 
   const attendance = await Attendance.findOne({
     employee: employee._id,
-    attendanceDate: today,
+    attendanceDate: {
+      $gte: startOfDay,
+      $lte: endOfDay,
+    },
     isActive: true,
   }).populate("attendanceStatus");
 
@@ -135,8 +153,6 @@ export const clockOutService = async (userId) => {
   if (attendance.checkOutTime) {
     throw new Error("You have already clocked out today.");
   }
-
-  const now = new Date();
 
   const workedMilliseconds = now - attendance.checkInTime;
 
@@ -213,9 +229,18 @@ export const getTodayAttendanceService = async (userId) => {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
+  const startOfDay = new Date(today);
+  startOfDay.setHours(0, 0, 0, 0);
+
+  const endOfDay = new Date(today);
+  endOfDay.setHours(23, 59, 59, 999);
+
   const attendance = await Attendance.findOne({
     employee: employee._id,
-    attendanceDate: today,
+    attendanceDate: {
+      $gte: startOfDay,
+      $lte: endOfDay,
+    },
     isActive: true,
   })
     .populate("attendanceStatus")
@@ -358,14 +383,14 @@ export const getMonthlyAttendanceCalendarService = async (
   const attendanceMap = new Map();
 
   attendance.forEach((item) => {
-    const key = item.attendanceDate.toISOString().split("T")[0];
+    const key = item.attendanceDate.toLocaleDateString("en-CA");
     attendanceMap.set(key, item);
   });
 
   const holidayMap = new Map();
 
   holidays.forEach((holiday) => {
-    const key = holiday.date.toISOString().split("T")[0];
+    const key = holiday.date.toLocaleDateString("en-CA");
     holidayMap.set(key, holiday);
   });
 
@@ -385,7 +410,7 @@ export const getMonthlyAttendanceCalendarService = async (
   ) {
     const currentDate = new Date(current);
 
-    const key = currentDate.toISOString().split("T")[0];
+    const key = currentDate.toLocaleDateString("en-CA");
 
     const attendanceRecord = attendanceMap.get(key);
 
