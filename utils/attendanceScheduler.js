@@ -1,16 +1,15 @@
 import cron from "node-cron";
 import { runAttendanceSchedulerService } from "../services/attendanceService.js";
+import { startOfGivenDay } from "./dateUtils.js";
 
 export const startAttendanceScheduler = () => {
   cron.schedule(
     "5 0 * * *",
     async () => {
       try {
-        const yesterday = new Date();
-
-        yesterday.setDate(yesterday.getDate() - 1);
-
-        yesterday.setHours(0, 0, 0, 0);
+        const yesterday = startOfGivenDay(
+          new Date(Date.now() - 24 * 60 * 60 * 1000),
+        );
 
         const result = await runAttendanceSchedulerService(yesterday);
 

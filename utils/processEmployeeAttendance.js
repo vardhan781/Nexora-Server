@@ -3,13 +3,12 @@ import Holiday from "../models/holidayModel.js";
 import LeaveRequest from "../models/leaveRequestModel.js";
 import RequestStatus from "../models/requestStatusModel.js";
 import { createAttendance } from "./createAttendance.js";
+import { endOfGivenDay, getWeekdayCode, startOfGivenDay } from "./dateUtils.js";
 
 export const processEmployeeAttendance = async (employee, date) => {
-  const startOfDay = new Date(date);
-  startOfDay.setHours(0, 0, 0, 0);
+  const startOfDay = startOfGivenDay(date);
 
-  const endOfDay = new Date(date);
-  endOfDay.setHours(23, 59, 59, 999);
+  const endOfDay = endOfGivenDay(date);
 
   const existingAttendance = await Attendance.findOne({
     employee: employee._id,
@@ -37,11 +36,7 @@ export const processEmployeeAttendance = async (employee, date) => {
     return "holiday";
   }
 
-  const dayCode = date
-    .toLocaleDateString("en-US", {
-      weekday: "short",
-    })
-    .toUpperCase();
+  const dayCode = getWeekdayCode(date);
 
   if (employee.shift?.weeklyOffDays.includes(dayCode)) {
     await createAttendance(employee, date, "WEEKLY_OFF");

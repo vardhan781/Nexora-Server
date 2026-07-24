@@ -3,6 +3,19 @@ import AttendanceStatus from "../models/attendanceStatusModel.js";
 import Employee from "../models/employeeModel.js";
 import Holiday from "../models/holidayModel.js";
 import Shift from "../models/shiftModel.js";
+import {
+  attendanceDate,
+  differenceInHours,
+  differenceInMinutes,
+  endOfToday,
+  graceEnd,
+  nowDate,
+  shiftStart,
+  startOfToday,
+  getMonthStart,
+  getMonthEnd,
+  startOfGivenDay,
+} from "../utils/dateUtils.js";
 import { processEmployeeAttendance } from "../utils/processEmployeeAttendance.js";
 
 export const clockInService = async (userId) => {
@@ -19,18 +32,9 @@ export const clockInService = async (userId) => {
     throw new Error("Shift is not assigned.");
   }
 
-  const now = new Date();
+  const now = nowDate();
 
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-
-  console.log("========== CLOCK IN DEBUG ==========");
-  console.log("Timezone:", Intl.DateTimeFormat().resolvedOptions().timeZone);
-
-  console.log("now.toString():", now.toString());
-  console.log("now.toISOString():", now.toISOString());
-
-  console.log("today.toString():", today.toString());
-  console.log("today.toISOString():", today.toISOString());
+  const today = attendanceDate();
 
   const presentStatus = await AttendanceStatus.findOne({
     code: "PRESENT",
@@ -46,38 +50,20 @@ export const clockInService = async (userId) => {
     throw new Error("Present status not found.");
   }
 
-  const [startHour, startMinute] = employee.shift.startTime
-    .split(":")
-    .map(Number);
-
-  const shiftStart = new Date(today);
-
-  shiftStart.setHours(startHour, startMinute, 0, 0);
-
-  console.log("shiftStart.toString():", shiftStart.toString());
-  console.log("shiftStart.toISOString():", shiftStart.toISOString());
-
-  const graceEnd = new Date(shiftStart);
-
-  graceEnd.setMinutes(graceEnd.getMinutes() + employee.shift.graceMinutes);
-
-  console.log("graceEnd.toString():", graceEnd.toString());
-  console.log("graceEnd.toISOString():", graceEnd.toISOString());
+  const graceEndTime = graceEnd(
+    employee.shift.startTime,
+    employee.shift.graceMinutes,
+  );
 
   let lateMinutes = 0;
 
-  if (now > graceEnd) {
-    lateMinutes = Math.floor((now - graceEnd) / (1000 * 60));
+  if (now > graceEndTime) {
+    lateMinutes = differenceInMinutes(now, graceEndTime);
   }
 
-  console.log("Difference(ms):", now - graceEnd);
-  console.log("Late Minutes:", lateMinutes);
+  const startOfDay = startOfToday();
 
-  const startOfDay = new Date(today);
-  startOfDay.setHours(0, 0, 0, 0);
-
-  const endOfDay = new Date(today);
-  endOfDay.setHours(23, 59, 59, 999);
+  const endOfDay = endOfToday();
 
   const existingAttendance = await Attendance.findOne({
     employee: employee._id,
@@ -109,15 +95,6 @@ export const clockInService = async (userId) => {
   if (existingAttendance) {
     throw new Error("You have already clocked in today.");
   }
-
-  console.log("Saving Attendance...");
-  console.log({
-    attendanceDate: today,
-    attendanceDateISO: today.toISOString(),
-    checkInTime: now.toISOString(),
-    lateMinutes,
-  });
-  console.log("====================================");
 
   const attendance = await Attendance.create({
     employee: employee._id,
@@ -154,15 +131,13 @@ export const clockOutService = async (userId) => {
     throw new Error("Shift is not assigned.");
   }
 
-  const now = new Date();
+  const now = nowDate();
 
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const today = attendanceDate();
 
-  const startOfDay = new Date(today);
-  startOfDay.setHours(0, 0, 0, 0);
+  const startOfDay = startOfToday();
 
-  const endOfDay = new Date(today);
-  endOfDay.setHours(23, 59, 59, 999);
+  const endOfDay = endOfToday();
 
   const attendance = await Attendance.findOne({
     employee: employee._id,
@@ -181,9 +156,7 @@ export const clockOutService = async (userId) => {
     throw new Error("You have already clocked out today.");
   }
 
-  const workedMilliseconds = now - attendance.checkInTime;
-
-  const totalHours = Number((workedMilliseconds / (1000 * 60 * 60)).toFixed(2));
+  const totalHours = differenceInHours(now, attendance.checkInTime);
 
   let overtimeHours = 0;
 
@@ -253,14 +226,11 @@ export const getTodayAttendanceService = async (userId) => {
     throw new Error("Shift is not assigned.");
   }
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  const today = attendanceDate();
 
-  const startOfDay = new Date(today);
-  startOfDay.setHours(0, 0, 0, 0);
+  const startOfDay = startOfToday();
 
-  const endOfDay = new Date(today);
-  endOfDay.setHours(23, 59, 59, 999);
+  const endOfDay = endOfToday();
 
   const attendance = await Attendance.findOne({
     employee: employee._id,
@@ -366,11 +336,10 @@ export const getMonthlyAttendanceCalendarService = async (
     throw new Error("Employee not found.");
   }
 
-  const startDate = new Date(year, month - 1, 1);
+  const startDate = getMonthStart(month, year);
   startDate.setHours(0, 0, 0, 0);
 
-  const endDate = new Date(year, month, 0);
-  endDate.setHours(23, 59, 59, 999);
+  const endDate = getMonthEnd(month, year);
 
   const [attendance, holidays, attendanceStatuses] = await Promise.all([
     Attendance.find({
@@ -425,8 +394,7 @@ export const getMonthlyAttendanceCalendarService = async (
 
   const dayNames = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  const today = attendanceDate();
 
   const calendar = [];
 
@@ -527,10 +495,9 @@ export const getMonthlyAttendanceCalendarService = async (
 };
 
 export const runAttendanceSchedulerService = async (date = new Date()) => {
-  date.setHours(0, 0, 0, 0);
+  date = startOfGivenDay(date);
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  const today = attendanceDate();
 
   if (date > today) {
     throw new Error("Cannot generate attendance for future dates.");

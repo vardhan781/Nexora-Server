@@ -1,4 +1,5 @@
 import Holiday from "../models/holidayModel.js";
+import { startOfGivenDay } from "../utils/dateUtils.js";
 
 export const getHolidaysService = async () => {
   return await Holiday.find({ isActive: true }).sort({ date: 1 });
@@ -7,8 +8,7 @@ export const getHolidaysService = async () => {
 export const createHolidayService = async (data, userId) => {
   const { name, date, type, description } = data;
 
-  const holidayDate = new Date(date);
-  holidayDate.setHours(0, 0, 0, 0);
+  const holidayDate = startOfGivenDay(new Date(date));
 
   const existingHoliday = await Holiday.findOne({
     isActive: true,
@@ -43,8 +43,7 @@ export const updateHolidayService = async (holidayId, data, userId) => {
   const { name, date, type, description } = data;
 
   if (date) {
-    const holidayDate = new Date(date);
-    holidayDate.setHours(0, 0, 0, 0);
+    const holidayDate = startOfGivenDay(new Date(date));
 
     const existingHoliday = await Holiday.findOne({
       _id: { $ne: holidayId },

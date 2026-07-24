@@ -5,16 +5,16 @@ import Attendance from "../models/attendanceModel.js";
 import AttendanceStatus from "../models/attendanceStatusModel.js";
 import SalaryComponent from "../models/salaryComponentModel.js";
 import Holiday from "../models/holidayModel.js";
+import {
+  getMonthEnd,
+  getMonthStart,
+  getWeekdayCode,
+} from "../utils/dateUtils.js";
 
-const getMonthDateRange = (month, year) => {
-  const startDate = new Date(year, month - 1, 1);
-  const endDate = new Date(year, month, 0);
-
-  startDate.setHours(0, 0, 0, 0);
-  endDate.setHours(23, 59, 59, 999);
-
-  return { startDate, endDate };
-};
+const getMonthDateRange = (month, year) => ({
+  startDate: getMonthStart(month, year),
+  endDate: getMonthEnd(month, year),
+});
 
 const calculateAttendanceSummary = async (
   employee,
@@ -58,7 +58,7 @@ const calculateAttendanceSummary = async (
   });
 
   const holidays = await Holiday.countDocuments({
-    holidayDate: {
+    date: {
       $gte: startDate,
       $lte: endDate,
     },
@@ -75,11 +75,7 @@ const calculateAttendanceSummary = async (
       currentDate <= endDate;
       currentDate.setDate(currentDate.getDate() + 1)
     ) {
-      const dayName = currentDate
-        .toLocaleDateString("en-US", {
-          weekday: "short",
-        })
-        .toUpperCase();
+      const dayName = getWeekdayCode(currentDate);
 
       if (weeklyOffDays.includes(dayName)) {
         weeklyOffs++;
