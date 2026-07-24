@@ -34,6 +34,15 @@ export const clockInService = async (userId) => {
 
   const now = nowDate();
 
+  const earliestCheckIn = shiftStart(employee.shift.startTime);
+  earliestCheckIn.setMinutes(earliestCheckIn.getMinutes() - 45);
+
+  if (now < earliestCheckIn) {
+    throw new Error(
+      `You can clock in only 45 minutes before your shift starts.`,
+    );
+  }
+
   const today = attendanceDate();
 
   const presentStatus = await AttendanceStatus.findOne({
@@ -193,7 +202,9 @@ export const clockOutService = async (userId) => {
 
   let attendanceStatus;
 
-  if (totalHours >= employee.shift.totalHours) {
+  if (attendance.lateMinutes >= 120) {
+    attendanceStatus = halfDayStatus;
+  } else if (totalHours >= employee.shift.totalHours) {
     attendanceStatus = presentStatus;
   } else if (totalHours >= employee.shift.halfDayHours) {
     attendanceStatus = halfDayStatus;
@@ -244,13 +255,20 @@ export const getTodayAttendanceService = async (userId) => {
     .populate("shift");
 
   if (!attendance) {
+    const now = nowDate();
+
+    const earliestCheckIn = shiftStart(employee.shift.startTime);
+    earliestCheckIn.setMinutes(earliestCheckIn.getMinutes() - 45);
+
+    const canClockIn = now >= earliestCheckIn;
+
     return {
       attendanceDate: today,
 
       isClockedIn: false,
       isClockedOut: false,
 
-      canClockIn: true,
+      canClockIn,
       canClockOut: false,
 
       attendanceStatus: null,

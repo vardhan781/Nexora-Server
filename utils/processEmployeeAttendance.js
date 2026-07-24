@@ -1,4 +1,5 @@
 import Attendance from "../models/attendanceModel.js";
+import AttendanceStatus from "../models/attendanceStatusModel.js";
 import Holiday from "../models/holidayModel.js";
 import LeaveRequest from "../models/leaveRequestModel.js";
 import RequestStatus from "../models/requestStatusModel.js";
@@ -20,6 +21,39 @@ export const processEmployeeAttendance = async (employee, date) => {
   });
 
   if (existingAttendance) {
+    if (existingAttendance.checkInTime && !existingAttendance.checkOutTime) {
+      const checkOutTime = new Date(existingAttendance.checkInTime);
+
+      checkOutTime.setHours(
+        checkOutTime.getHours() + employee.shift.totalHours,
+      );
+
+      existingAttendance.checkOutTime = checkOutTime;
+
+      existingAttendance.totalHours = employee.shift.totalHours;
+
+      existingAttendance.overtimeHours = 0;
+
+      const [presentStatus, halfDayStatus] = await Promise.all([
+        AttendanceStatus.findOne({
+          code: "PRESENT",
+          isActive: true,
+        }),
+        AttendanceStatus.findOne({
+          code: "HALF_DAY",
+          isActive: true,
+        }),
+      ]);
+
+      if (existingAttendance.lateMinutes >= 120) {
+        existingAttendance.attendanceStatus = halfDayStatus._id;
+      } else {
+        existingAttendance.attendanceStatus = presentStatus._id;
+      }
+
+      await existingAttendance.save();
+    }
+
     return null;
   }
 
