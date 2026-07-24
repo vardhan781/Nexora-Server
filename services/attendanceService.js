@@ -23,6 +23,15 @@ export const clockInService = async (userId) => {
 
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
+  console.log("========== CLOCK IN DEBUG ==========");
+  console.log("Timezone:", Intl.DateTimeFormat().resolvedOptions().timeZone);
+
+  console.log("now.toString():", now.toString());
+  console.log("now.toISOString():", now.toISOString());
+
+  console.log("today.toString():", today.toString());
+  console.log("today.toISOString():", today.toISOString());
+
   const presentStatus = await AttendanceStatus.findOne({
     code: "PRESENT",
     isActive: true,
@@ -45,15 +54,24 @@ export const clockInService = async (userId) => {
 
   shiftStart.setHours(startHour, startMinute, 0, 0);
 
+  console.log("shiftStart.toString():", shiftStart.toString());
+  console.log("shiftStart.toISOString():", shiftStart.toISOString());
+
   const graceEnd = new Date(shiftStart);
 
   graceEnd.setMinutes(graceEnd.getMinutes() + employee.shift.graceMinutes);
+
+  console.log("graceEnd.toString():", graceEnd.toString());
+  console.log("graceEnd.toISOString():", graceEnd.toISOString());
 
   let lateMinutes = 0;
 
   if (now > graceEnd) {
     lateMinutes = Math.floor((now - graceEnd) / (1000 * 60));
   }
+
+  console.log("Difference(ms):", now - graceEnd);
+  console.log("Late Minutes:", lateMinutes);
 
   const startOfDay = new Date(today);
   startOfDay.setHours(0, 0, 0, 0);
@@ -91,6 +109,15 @@ export const clockInService = async (userId) => {
   if (existingAttendance) {
     throw new Error("You have already clocked in today.");
   }
+
+  console.log("Saving Attendance...");
+  console.log({
+    attendanceDate: today,
+    attendanceDateISO: today.toISOString(),
+    checkInTime: now.toISOString(),
+    lateMinutes,
+  });
+  console.log("====================================");
 
   const attendance = await Attendance.create({
     employee: employee._id,
