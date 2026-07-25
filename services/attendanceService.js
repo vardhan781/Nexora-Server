@@ -15,6 +15,7 @@ import {
   getMonthStart,
   getMonthEnd,
   startOfGivenDay,
+  toBusinessDateKey,
 } from "../utils/dateUtils.js";
 import { processEmployeeAttendance } from "../utils/processEmployeeAttendance.js";
 
@@ -354,9 +355,6 @@ export const getMonthlyAttendanceCalendarService = async (
     throw new Error("Employee not found.");
   }
 
-  const startDate = getMonthStart(month, year);
-  startDate.setHours(0, 0, 0, 0);
-
   const endDate = getMonthEnd(month, year);
 
   const [attendance, holidays, attendanceStatuses] = await Promise.all([
@@ -397,14 +395,14 @@ export const getMonthlyAttendanceCalendarService = async (
   const attendanceMap = new Map();
 
   attendance.forEach((item) => {
-    const key = item.attendanceDate.toLocaleDateString("en-CA");
+    const key = toBusinessDateKey(item.attendanceDate);
     attendanceMap.set(key, item);
   });
 
   const holidayMap = new Map();
 
   holidays.forEach((holiday) => {
-    const key = holiday.date.toLocaleDateString("en-CA");
+    const key = toBusinessDateKey(holiday.date);
     holidayMap.set(key, holiday);
   });
 
@@ -423,7 +421,7 @@ export const getMonthlyAttendanceCalendarService = async (
   ) {
     const currentDate = new Date(current);
 
-    const key = currentDate.toLocaleDateString("en-CA");
+    const key = toBusinessDateKey(currentDate);
 
     const attendanceRecord = attendanceMap.get(key);
 

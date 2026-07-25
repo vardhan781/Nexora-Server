@@ -10,6 +10,11 @@ export const startOfToday = () => now().startOf("day").toJSDate();
 
 export const endOfToday = () => now().endOf("day").toJSDate();
 
+export const toBusinessDateKey = (date) =>
+  DateTime.fromJSDate(date, {
+    zone: APP_TIMEZONE,
+  }).toISODate();
+
 export const startOfGivenDay = (date) =>
   DateTime.fromJSDate(date, {
     zone: APP_TIMEZONE,
