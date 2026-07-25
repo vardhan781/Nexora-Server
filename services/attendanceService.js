@@ -17,6 +17,7 @@ import {
   startOfGivenDay,
   toBusinessDateKey,
   getBusinessWeekday,
+  getBusinessDay,
 } from "../utils/dateUtils.js";
 import { processEmployeeAttendance } from "../utils/processEmployeeAttendance.js";
 
@@ -143,8 +144,6 @@ export const clockOutService = async (userId) => {
   }
 
   const now = nowDate();
-
-  const today = attendanceDate();
 
   const startOfDay = startOfToday();
 
@@ -413,6 +412,8 @@ export const getMonthlyAttendanceCalendarService = async (
 
   const today = attendanceDate();
 
+  const todayKey = toBusinessDateKey(attendanceDate());
+
   const calendar = [];
 
   for (
@@ -421,6 +422,8 @@ export const getMonthlyAttendanceCalendarService = async (
     current.setDate(current.getDate() + 1)
   ) {
     const currentDate = new Date(current);
+
+    const currentKey = toBusinessDateKey(currentDate);
 
     const key = toBusinessDateKey(currentDate);
 
@@ -479,7 +482,7 @@ export const getMonthlyAttendanceCalendarService = async (
       continue;
     }
 
-    if (currentDate > today) {
+    if (currentKey > todayKey) {
       calendar.push({
         date: currentDate,
         day: getBusinessDay(currentDate),
