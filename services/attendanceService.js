@@ -355,7 +355,16 @@ export const getMonthlyAttendanceCalendarService = async (
     throw new Error("Employee not found.");
   }
 
+  const startDate = getMonthStart(month, year);
   const endDate = getMonthEnd(month, year);
+
+  console.log("\n================ CALENDAR REQUEST ================");
+  console.log("Month:", month);
+  console.log("Year:", year);
+  console.log("Start Date:", startDate.toISOString());
+  console.log("End Date:", endDate.toISOString());
+  console.log("Today:", attendanceDate().toISOString());
+  console.log("==================================================\n");
 
   const [attendance, holidays, attendanceStatuses] = await Promise.all([
     Attendance.find({
@@ -382,6 +391,28 @@ export const getMonthlyAttendanceCalendarService = async (
     }),
   ]);
 
+  console.log("\n========== ATTENDANCE FROM DB ==========");
+
+  attendance.forEach((item) => {
+    console.log({
+      attendanceDate: item.attendanceDate.toISOString(),
+      businessKey: toBusinessDateKey(item.attendanceDate),
+      status: item.attendanceStatus.code,
+      checkIn: item.checkInTime,
+      checkOut: item.checkOutTime,
+    });
+  });
+
+  console.log("\n========== HOLIDAYS ==========");
+
+  holidays.forEach((holiday) => {
+    console.log({
+      holiday: holiday.name,
+      date: holiday.date.toISOString(),
+      businessKey: toBusinessDateKey(holiday.date),
+    });
+  });
+
   const statusMap = new Map();
 
   attendanceStatuses.forEach((status) => {
@@ -399,6 +430,15 @@ export const getMonthlyAttendanceCalendarService = async (
     attendanceMap.set(key, item);
   });
 
+  console.log("\n========== ATTENDANCE MAP ==========");
+
+  for (const [key, value] of attendanceMap.entries()) {
+    console.log(key, {
+      attendanceDate: value.attendanceDate.toISOString(),
+      status: value.attendanceStatus.code,
+    });
+  }
+
   const holidayMap = new Map();
 
   holidays.forEach((holiday) => {
@@ -407,6 +447,8 @@ export const getMonthlyAttendanceCalendarService = async (
   });
 
   const weeklyOffDays = employee.shift?.weeklyOffDays || [];
+
+  console.log("\nWeekly Off Days:", weeklyOffDays);
 
   const dayNames = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
 
@@ -425,7 +467,24 @@ export const getMonthlyAttendanceCalendarService = async (
 
     const attendanceRecord = attendanceMap.get(key);
 
+    console.log("\n----------------------------------------");
+    console.log("Current Date:", currentDate.toISOString());
+    console.log("Business Key:", key);
+    console.log("Day:", dayNames[currentDate.getDay()]);
+    console.log("Attendance Exists:", attendanceMap.has(key));
+    console.log("Holiday Exists:", holidayMap.has(key));
+    console.log(
+      "Weekly Off:",
+      weeklyOffDays.includes(dayNames[currentDate.getDay()]),
+    );
+
     if (attendanceRecord) {
+      console.log(">>>> MATCHED ATTENDANCE <<<<");
+      console.log({
+        attendanceDate: attendanceRecord.attendanceDate.toISOString(),
+        status: attendanceRecord.attendanceStatus.code,
+      });
+
       calendar.push({
         date: attendanceRecord.attendanceDate,
         day: attendanceRecord.attendanceDate.getDate(),
@@ -442,6 +501,8 @@ export const getMonthlyAttendanceCalendarService = async (
     }
 
     if (holidayMap.has(key)) {
+      console.log(">>>> SELECTED HOLIDAY <<<<");
+
       const holiday = holidayMap.get(key);
 
       calendar.push({
@@ -463,6 +524,8 @@ export const getMonthlyAttendanceCalendarService = async (
     const dayName = dayNames[currentDate.getDay()];
 
     if (weeklyOffDays.includes(dayName)) {
+      console.log(">>>> SELECTED WEEKLY OFF <<<<");
+
       calendar.push({
         date: currentDate,
         day: currentDate.getDate(),
@@ -479,6 +542,8 @@ export const getMonthlyAttendanceCalendarService = async (
     }
 
     if (currentDate > today) {
+      console.log(">>>> SELECTED UPCOMING <<<<");
+
       calendar.push({
         date: currentDate,
         day: currentDate.getDate(),
@@ -494,6 +559,8 @@ export const getMonthlyAttendanceCalendarService = async (
       continue;
     }
 
+    console.log(">>>> SELECTED ABSENT <<<<");
+
     calendar.push({
       date: currentDate,
       day: currentDate.getDate(),
@@ -506,6 +573,16 @@ export const getMonthlyAttendanceCalendarService = async (
       overtimeHours: null,
     });
   }
+
+  console.log("\n================ CALENDAR RESULT ================");
+  calendar.forEach((item) => {
+    console.log({
+      day: item.day,
+      status: item.status,
+      date: item.date.toISOString(),
+    });
+  });
+  console.log("=================================================\n");
 
   return calendar;
 };
