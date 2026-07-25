@@ -15,6 +15,13 @@ export const toBusinessDateKey = (date) =>
     zone: APP_TIMEZONE,
   }).toISODate();
 
+export const getBusinessWeekday = (date) =>
+  DateTime.fromJSDate(date, {
+    zone: APP_TIMEZONE,
+  })
+    .toFormat("ccc")
+    .toUpperCase();
+
 export const startOfGivenDay = (date) =>
   DateTime.fromJSDate(date, {
     zone: APP_TIMEZONE,
