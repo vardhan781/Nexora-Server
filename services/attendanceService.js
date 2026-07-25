@@ -356,6 +356,8 @@ export const getMonthlyAttendanceCalendarService = async (
     throw new Error("Employee not found.");
   }
 
+  const startDate = getMonthStart(month, year);
+
   const endDate = getMonthEnd(month, year);
 
   const [attendance, holidays, attendanceStatuses] = await Promise.all([
