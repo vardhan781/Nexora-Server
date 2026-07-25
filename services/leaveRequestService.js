@@ -2,12 +2,53 @@ import LeaveRequest from "../models/leaveRequestModel.js";
 import LeaveType from "../models/leaveTypeModel.js";
 import RequestStatus from "../models/requestStatusModel.js";
 import Employee from "../models/employeeModel.js";
+import Holiday from "../models/holidayModel.js";
+import Shift from "../models/shiftModel.js";
+import {
+  startOfGivenDay,
+  endOfGivenDay,
+  getWeekdayCode,
+} from "../utils/dateUtils.js";
+
+const validateLeaveRange = async (employee, fromDate, toDate) => {
+  let current = startOfGivenDay(new Date(fromDate));
+
+  const endDate = endOfGivenDay(new Date(toDate));
+
+  let workingDays = 0;
+
+  while (current <= endDate) {
+    const holiday = await Holiday.exists({
+      date: {
+        $gte: startOfGivenDay(current),
+        $lte: endOfGivenDay(current),
+      },
+      isActive: true,
+    });
+
+    const dayCode = getWeekdayCode(current);
+
+    const isWeeklyOff = employee.shift?.weeklyOffDays.includes(dayCode);
+
+    if (!holiday && !isWeeklyOff) {
+      workingDays++;
+    }
+
+    current.setDate(current.getDate() + 1);
+  }
+
+  if (workingDays === 0) {
+    throw new Error(
+      "Leave cannot be applied because selected dates contain no working days.",
+    );
+  }
+};
 
 export const createLeaveRequestService = async (data, userId) => {
   const employee = await Employee.findOne({
     user: userId,
     isActive: true,
-  });
+  }).populate("shift");
 
   if (!employee) {
     throw new Error("Employee not found for this user.");
@@ -21,6 +62,8 @@ export const createLeaveRequestService = async (data, userId) => {
   if (!leaveType) {
     throw new Error("Leave type not found.");
   }
+
+  await validateLeaveRange(employee, data.fromDate, data.toDate);
 
   const pendingStatus = await RequestStatus.findOne({
     code: "PENDING",
@@ -41,7 +84,10 @@ export const createLeaveRequestService = async (data, userId) => {
 };
 
 export const getMyLeaveRequestsService = async (userId) => {
-  const employee = await Employee.findOne({ user: userId });
+  const employee = await Employee.findOne({
+    user: userId,
+    isActive: true,
+  }).populate("shift");
 
   if (!employee) {
     throw new Error("Employee not found.");
@@ -83,6 +129,12 @@ export const updateLeaveRequestService = async (id, data, userId) => {
   if (request.requestStatus.code !== "PENDING") {
     throw new Error("Only pending requests can be updated.");
   }
+
+  await validateLeaveRange(
+    employee,
+    data.fromDate || request.fromDate,
+    data.toDate || request.toDate,
+  );
 
   Object.assign(request, {
     ...data,

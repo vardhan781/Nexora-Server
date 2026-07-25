@@ -5,6 +5,7 @@ import LeaveRequest from "../models/leaveRequestModel.js";
 import RequestStatus from "../models/requestStatusModel.js";
 import { createAttendance } from "./createAttendance.js";
 import { endOfGivenDay, getWeekdayCode, startOfGivenDay } from "./dateUtils.js";
+import { isSandwichLeaveApplicable } from "./isSandwichLeaveApplicable.js";
 
 export const processEmployeeAttendance = async (employee, date) => {
   const startOfDay = startOfGivenDay(date);
@@ -57,24 +58,9 @@ export const processEmployeeAttendance = async (employee, date) => {
     return null;
   }
 
-  const holiday = await Holiday.findOne({
-    date: {
-      $gte: startOfDay,
-      $lte: endOfDay,
-    },
-    isActive: true,
-  });
-
-  if (holiday) {
-    await createAttendance(employee, date, "HOLIDAY");
-    return "holiday";
-  }
-
-  const dayCode = getWeekdayCode(date);
-
-  if (employee.shift?.weeklyOffDays.includes(dayCode)) {
-    await createAttendance(employee, date, "WEEKLY_OFF");
-    return "weekOff";
+  if (await isSandwichLeaveApplicable(employee, date)) {
+    await createAttendance(employee, date, "LEAVE");
+    return "leave";
   }
 
   const approvedStatus = await RequestStatus.findOne({
@@ -93,6 +79,26 @@ export const processEmployeeAttendance = async (employee, date) => {
   if (leaveRequest) {
     await createAttendance(employee, date, "LEAVE");
     return "leave";
+  }
+
+  const holiday = await Holiday.findOne({
+    date: {
+      $gte: startOfDay,
+      $lte: endOfDay,
+    },
+    isActive: true,
+  });
+
+  if (holiday) {
+    await createAttendance(employee, date, "HOLIDAY");
+    return "holiday";
+  }
+
+  const dayCode = getWeekdayCode(date);
+
+  if (employee.shift?.weeklyOffDays.includes(dayCode)) {
+    await createAttendance(employee, date, "WEEKLY_OFF");
+    return "weekOff";
   }
 
   await createAttendance(employee, date, "ABSENT");
