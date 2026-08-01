@@ -26,6 +26,8 @@ import payrollSettingRouter from "./routes/payrollSettingRoutes.js";
 import salaryComponentRouter from "./routes/salaryComponentRoutes.js";
 import employeeSalaryRouter from "./routes/employeeSalaryRoutes.js";
 import payrollRouter from "./routes/payrollRoutes.js";
+import taskStatusRouter from "./routes/taskStatusRoutes.js";
+import taskPriorityRouter from "./routes/taskPriorityRoutes.js";
 
 dotenv.config();
 connectDB();
@@ -64,6 +66,8 @@ app.use("/api/payroll-settings", payrollSettingRouter);
 app.use("/api/salary-component", salaryComponentRouter);
 app.use("/api/employee-salary", employeeSalaryRouter);
 app.use("/api/payroll", payrollRouter);
+app.use("/api/task-status", taskStatusRouter);
+app.use("/api/task-priority", taskPriorityRouter);
 
 const PORT = process.env.PORT || 5000;
 
