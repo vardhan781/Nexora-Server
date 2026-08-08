@@ -28,6 +28,7 @@ import employeeSalaryRouter from "./routes/employeeSalaryRoutes.js";
 import payrollRouter from "./routes/payrollRoutes.js";
 import taskStatusRouter from "./routes/taskStatusRoutes.js";
 import taskPriorityRouter from "./routes/taskPriorityRoutes.js";
+import taskRouter from "./routes/taskRoutes.js";
 
 dotenv.config();
 connectDB();
@@ -68,6 +69,7 @@ app.use("/api/employee-salary", employeeSalaryRouter);
 app.use("/api/payroll", payrollRouter);
 app.use("/api/task-status", taskStatusRouter);
 app.use("/api/task-priority", taskPriorityRouter);
+app.use("/api/task", taskRouter);
 
 const PORT = process.env.PORT || 5000;
 
