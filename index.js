@@ -29,6 +29,8 @@ import payrollRouter from "./routes/payrollRoutes.js";
 import taskStatusRouter from "./routes/taskStatusRoutes.js";
 import taskPriorityRouter from "./routes/taskPriorityRoutes.js";
 import taskRouter from "./routes/taskRoutes.js";
+import leadStatusRouter from "./routes/leadStatusRoute.js";
+import leadSourceRouter from "./routes/leadSourceRoutes.js";
 
 dotenv.config();
 connectDB();
@@ -70,6 +72,8 @@ app.use("/api/payroll", payrollRouter);
 app.use("/api/task-status", taskStatusRouter);
 app.use("/api/task-priority", taskPriorityRouter);
 app.use("/api/task", taskRouter);
+app.use("/api/lead-status", leadStatusRouter);
+app.use("/api/lead-source", leadSourceRouter);
 
 const PORT = process.env.PORT || 5000;
 
