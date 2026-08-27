@@ -31,6 +31,7 @@ import taskPriorityRouter from "./routes/taskPriorityRoutes.js";
 import taskRouter from "./routes/taskRoutes.js";
 import leadStatusRouter from "./routes/leadStatusRoute.js";
 import leadSourceRouter from "./routes/leadSourceRoutes.js";
+import leadRouter from "./routes/leadRoutes.js";
 
 dotenv.config();
 connectDB();
@@ -74,6 +75,7 @@ app.use("/api/task-priority", taskPriorityRouter);
 app.use("/api/task", taskRouter);
 app.use("/api/lead-status", leadStatusRouter);
 app.use("/api/lead-source", leadSourceRouter);
+app.use("/api/lead", leadRouter);
 
 const PORT = process.env.PORT || 5000;
 
