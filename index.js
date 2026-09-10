@@ -32,6 +32,7 @@ import taskRouter from "./routes/taskRoutes.js";
 import leadStatusRouter from "./routes/leadStatusRoute.js";
 import leadSourceRouter from "./routes/leadSourceRoutes.js";
 import leadRouter from "./routes/leadRoutes.js";
+import clientRouter from "./routes/clientRoutes.js";
 
 dotenv.config();
 connectDB();
@@ -76,6 +77,7 @@ app.use("/api/task", taskRouter);
 app.use("/api/lead-status", leadStatusRouter);
 app.use("/api/lead-source", leadSourceRouter);
 app.use("/api/lead", leadRouter);
+app.use("/api/client", clientRouter);
 
 const PORT = process.env.PORT || 5000;
 
