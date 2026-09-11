@@ -1,5 +1,6 @@
 import {
   assignLeadService,
+  convertLeadService,
   createLeadService,
   deleteLeadService,
   getLeadByIdService,
@@ -164,6 +165,23 @@ export const getLeadStats = async (req, res) => {
     });
   } catch (error) {
     res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+export const convertLead = async (req, res) => {
+  try {
+    const lead = await convertLeadService(req.params.id, req.user._id);
+
+    return res.status(200).json({
+      success: true,
+      data: lead,
+      message: "Lead converted to client successfully",
+    });
+  } catch (error) {
+    return res.status(400).json({
       success: false,
       message: error.message,
     });

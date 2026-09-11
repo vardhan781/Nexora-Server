@@ -4,6 +4,7 @@ import permissionMiddleware from "../middlewares/permissionMiddleware.js";
 
 import {
   assignLead,
+  convertLead,
   createLead,
   deleteLead,
   getLeadById,
@@ -41,6 +42,13 @@ leadRouter.patch(
   authMiddleware,
   permissionMiddleware("MANAGE_LEADS", "canEdit"),
   assignLead,
+);
+
+leadRouter.post(
+  "/:id/convert",
+  authMiddleware,
+  permissionMiddleware("MY_LEADS", "canEdit"),
+  convertLead,
 );
 
 leadRouter.get("/:id", authMiddleware, getLeadById);

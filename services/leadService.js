@@ -1,7 +1,9 @@
+import mongoose from "mongoose";
 import Employee from "../models/employeeModel.js";
 import Lead from "../models/leadModel.js";
 import LeadSource from "../models/leadSourceModel.js";
 import LeadStatus from "../models/leadStatusModel.js";
+import Client from "../models/clientModel.js";
 
 export const createLeadService = async (data, userId) => {
   const {
@@ -585,4 +587,108 @@ export const getLeadStatsService = async () => {
     sourceStats,
     assignedStats,
   };
+};
+
+export const convertLeadService = async (leadId, userId) => {
+  const session = await mongoose.startSession();
+
+  try {
+    session.startTransaction();
+
+    const lead = await Lead.findOne({
+      _id: leadId,
+      isActive: true,
+    }).session(session);
+
+    if (!lead) {
+      throw new Error("Lead not found");
+    }
+
+    const currentStatus = await LeadStatus.findById(lead.leadStatus).session(
+      session,
+    );
+
+    if (!currentStatus) {
+      throw new Error("Lead status not found");
+    }
+
+    if (currentStatus.code === "CONVERTED") {
+      throw new Error("Lead is already converted");
+    }
+
+    if (currentStatus.code !== "QUALIFIED") {
+      throw new Error("Only qualified leads can be converted");
+    }
+
+    if (!lead.companyName?.trim()) {
+      throw new Error("Company name is required to convert lead");
+    }
+
+    const convertedStatus = await LeadStatus.findOne({
+      code: "CONVERTED",
+      isActive: true,
+    }).session(session);
+
+    if (!convertedStatus) {
+      throw new Error("Converted lead status not found");
+    }
+
+    const lastClient = await Client.findOne()
+      .sort({ clientCode: -1 })
+      .session(session);
+
+    let clientCode = "CLIENT0001";
+
+    if (lastClient) {
+      const lastNumber = parseInt(
+        lastClient.clientCode.replace("CLIENT", ""),
+        10,
+      );
+
+      if (!Number.isNaN(lastNumber)) {
+        clientCode = `CLIENT${String(lastNumber + 1).padStart(4, "0")}`;
+      }
+    }
+
+    const [client] = await Client.create(
+      [
+        {
+          clientCode,
+          companyName: lead.companyName.trim(),
+          contactPerson: lead.leadName?.trim() || "",
+          email: lead.email?.trim().toLowerCase() || "",
+          mobileNumber: lead.mobileNumber?.trim() || "",
+          website: "",
+          address: {},
+          assignedTo: null,
+          remarks: lead.remarks?.trim() || "",
+          createdBy: userId,
+        },
+      ],
+      { session },
+    );
+
+    lead.leadStatus = convertedStatus._id;
+    lead.convertedClient = client._id;
+    lead.updatedBy = userId;
+
+    await lead.save({ session });
+
+    await session.commitTransaction();
+
+    const convertedLead = await Lead.findById(lead._id)
+      .populate("leadStatus", "name code description")
+      .populate("leadSource", "name code description")
+      .populate("assignedTo")
+      .populate("convertedClient")
+      .populate("createdBy", "name email")
+      .populate("updatedBy", "name email");
+
+    return convertedLead;
+  } catch (error) {
+    await session.abortTransaction();
+    throw error;
+  } finally {
+    session.endSession();
+  }
 };
